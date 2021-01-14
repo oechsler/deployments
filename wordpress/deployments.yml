@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: wordpress
+  name: wordpress-database
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress-database
+  template:
+    metadata:
+      labels:
+        app: wordpress-database
+  
+    spec:
+      volumes:
+        - name: mariadb-data
+          persistentVolumeClaim:
+            claimName: wordpress-database-data
+
+      containers:
+        - name: mariadb
+          image: mariadb:10.5.8
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mariadb-data
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-database-secret
+                  key: rootPassword
+            - name: MYSQL_DATABASE
+              value: wordpress
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-database-secret
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-database-secret
+                  key: password
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: wordpress
+  name: wordpress-database-admin
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress-database-admin
+  template:
+    metadata:
+      labels: 
+        app: wordpress-database-admin
+        
+    spec: 
+      containers:
+        - name: phpmyadmin
+          image: phpmyadmin:5.0.4
+          ports:
+            - containerPort: 80
+          env:
+            - name: PMA_HOST
+              value: wordpress-database
+            - name: PMA_PORT
+              value: "3306"
+            - name: PMA_ABSOLUTE_URI
+              value: "https://wpdev.oechsler.it/phpmyadmin"
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: wordpress
+  name: wordpress-instance
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress-instance
+  template:
+    metadata:
+      labels: 
+        app: wordpress-instance
+        
+    spec:
+      volumes:
+        - name: wordpress-data
+          persistentVolumeClaim:
+            claimName: wordpress-instance-data
+            
+      containers:
+        - name: wordpress
+          image: wordpress:5.5.3
+          volumeMounts:
+            - mountPath: /var/www/html
+              name: wordpress-data
+          ports:
+            - containerPort: 80
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: wordpress-database:3306
+            - name: WORDPRESS_DB_NAME
+              value: wordpress
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-database-secret
+                  key: username
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-database-secret
+                  key: password

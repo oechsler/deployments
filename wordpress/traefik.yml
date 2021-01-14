@@ -1,0 +1,121 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  namespace: wordpress
+  name: wordpress-redirect-https
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  namespace: wordpress
+  name: wordpress-basic-auth
+spec:
+  basicAuth:
+    secret: wordpress-basicauth-secret
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  namespace: wordpress
+  name: wordpress-database-admin-strip-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /phpmyadmin
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  namespace: wordpress
+  name: wordpress-database-admin-web
+  
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`wpdev.oechsler.it`) && PathPrefix(`/phpmyadmin`)
+    kind: Rule
+    middlewares:
+      - namespace: wordpress
+        name: wordpress-redirect-https
+      - namespace: wordpress
+        name: wordpress-database-admin-strip-prefix
+    services:
+    - name: wordpress-database-admin
+      port: 80
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  namespace: wordpress
+  name: wordpress-database-admin-websecure
+  
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`wpdev.oechsler.it`) && PathPrefix(`/phpmyadmin`)
+    kind: Rule
+    middlewares:
+      - namespace: wordpress
+        name: wordpress-redirect-https
+      - namespace: wordpress
+        name: wordpress-database-admin-strip-prefix
+    services:
+    - name: wordpress-database-admin
+      port: 80
+  tls:
+    certResolver: default
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  namespace: wordpress
+  name: wordpress-instance-web
+  
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`wpdev.oechsler.it`)
+    kind: Rule
+    middlewares:
+      - namespace: wordpress
+        name: wordpress-redirect-https
+      - namespace: wordpress
+        name: wordpress-basic-auth
+    services:
+    - name: wordpress-instance
+      port: 80
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  namespace: wordpress
+  name: wordpress-instance-websecure
+  
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`wpdev.oechsler.it`)
+    kind: Rule
+    middlewares:
+      - namespace: wordpress
+        name: wordpress-redirect-https
+      - namespace: wordpress
+        name: wordpress-basic-auth
+    services:
+    - name: wordpress-instance
+      port: 80
+  tls:
+    certResolver: default

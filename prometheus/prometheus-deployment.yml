@@ -1,0 +1,88 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: default-prometheus-data
+  
+provisioner: kubernetes.io/azure-file
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nobrl
+  - cache=none
+parameters:
+  skuName: Standard_LRS
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: default-prometheus-data
+  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      volumes:
+        - name: mount-prometheus-data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+        - name: mount-prometheus-config
+          configMap:
+            name: prometheus-config
+      containers:
+        - name: prometheus
+          image: prom/prometheus
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus/"
+          volumeMounts:
+            - name: mount-prometheus-data
+              mountPath: /prometheus/
+            - name: mount-prometheus-config
+              mountPath: /etc/prometheus/
+          ports:
+            - name: http
+              containerPort: 9090
+              
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+
+spec:
+  ports:
+    - protocol: TCP
+      name: http
+      port: 9090
+  selector: 
+    app: prometheus

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: wordpress
+  name: wordpress-database-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: do-block-storage
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: wordpress
+  name: wordpress-instance-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: do-block-storage
