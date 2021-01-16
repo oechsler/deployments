@@ -1,0 +1,33 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: traefik-traefik-acme
+  
+provisioner: kubernetes.io/azure-file
+mountOptions:
+  # Make sure to create 
+  # the respective files first
+  - dir_mode=0755
+  - file_mode=0600
+  - uid=65532
+  - gid=65532
+  - mfsymlinks
+  - nobrl
+  - cache=none
+parameters:
+  skuName: Standard_LRS
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: traefik
+  name: traefik-acme
+  
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: traefik-traefik-acme
