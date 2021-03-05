@@ -1,0 +1,46 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: eco-server-data
+  
+provisioner: kubernetes.io/azure-file
+mountOptions:
+  # Make sure to create 
+  # the respective files first
+  - dir_mode=0755
+  - file_mode=0600
+  - mfsymlinks
+  - nobrl
+  - cache=none
+parameters:
+  skuName: Standard_LRS
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: eco
+  name: server-config
+  
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: eco-server-data
+  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: eco
+  name: server-storage
+  
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 16Gi
+  storageClassName: eco-server-data

@@ -1,0 +1,86 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  namespace: eco
+  name: eco-server
+  labels:
+    app: eco-server
+
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: eco-server
+  template:
+    metadata:
+      labels:
+        app: eco-server
+    spec:
+      volumes:
+        - name: server-config
+          persistentVolumeClaim:
+            claimName: server-config
+        - name: server-storage
+          persistentVolumeClaim:
+            claimName: server-storage
+      containers:
+        - name: server
+          image: strangeloopgames/eco-game-server
+          resources:
+            requests:
+              cpu: 500m
+              memory: 500Mi
+            limits:
+              cpu: 1000m
+              memory: 1800Mi
+          volumeMounts:
+            - mountPath: "/app/Configs"
+              name: server-config
+            - mountPath: "/app/Storage"
+              name: server-storage
+          ports:
+            - name: eco
+              containerPort: 3000
+              protocol: UDP
+            - name: http
+              containerPort: 3001
+          startupProbe:
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            httpGet:
+              path: /
+              port: 3001
+              
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: eco
+  name: eco-server
+
+spec:
+  type: LoadBalancer
+  ports:
+    - name: eco
+      port: 3000
+      targetPort: 3000
+      protocol: UDP
+  selector:
+    app: eco-server
+    
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eco-server-admin
+  namespace: eco
+
+spec:
+  ports:
+    - name: http
+      port: 3001
+      protocol: TCP
+  selector:
+    app: eco-server
