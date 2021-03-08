@@ -1,7 +1,7 @@
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: eco-server-data
+  name: eco-server-config
   
 provisioner: kubernetes.io/azure-file
 mountOptions:
@@ -28,7 +28,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: eco-server-data
+  storageClassName: eco-server-config
   
 ---
 apiVersion: v1
@@ -42,5 +42,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 16Gi
-  storageClassName: eco-server-data
+      storage: 8Gi
+  storageClassName: default
