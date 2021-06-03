@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: cowrie
+  name: honeypot-config
+data:
+  cowrie.cfg: |
+    [honeypot]
+    hostname = node1
+    download_path = /data/downloads
+
+    [output_jsonlog]
+    enabled = true
+    logfile = /data/cowrie.json
+    epoch_timestamp = false
+
+    [output_textlog]
+    enabled = true
+    logfile = /data/cowrie.log
+    format = text
+
+    [output_reversedns]
+    enabled = true
+    timeout = 5
+  userdb.txt: |
+    # ':' separated fields, file is processed line for line
+    # processing will stop on first match
+    # 
+    # Field #1 contains the username
+    # Field #2 is currently unused
+    # Field #3 contains the password 
+    # '*' for password allows any password
+    # '!' at the start of a password will not grant this password access
+    # '/' can be used to write a regular expression 
+    #
+    root:x:!root
+    root:x:!123456
+    root:x:!/honeypot/i
+    root:x:*

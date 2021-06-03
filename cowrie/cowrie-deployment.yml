@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: cowrie
+  name: cowrie-honeypot
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cowrie-honeypot
+  template:
+    metadata:
+      labels:
+        app: cowrie-honeypot
+    spec:
+      volumes:
+        - name: honeypot-config
+          configMap: 
+            name: honeypot-config
+        - name: honeypot-log
+          persistentVolumeClaim:
+            claimName: honeypot-log
+      imagePullSecrets:
+        - name: oechsler
+      initContainers:
+        - name: honeypot-log-dirs
+          image: alpine:latest
+          command: ["/bin/mkdir","-p", "/data/tty", "/data/downloads"]
+          volumeMounts:
+          - name: honeypot-log
+            mountPath: /data
+        - name: honeypot-log-perm
+          image: alpine:latest
+          command: ["/bin/chmod","-R","777", "/data"]
+          volumeMounts:
+          - name: honeypot-log
+            mountPath: /data
+      containers:
+        - name: honeypot
+          image: cowrie/cowrie:latest
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+          ports:
+            - name: cowrie
+              containerPort: 2222
+          volumeMounts:
+            - name: honeypot-config
+              mountPath: /cowrie/cowrie-git/etc/cowrie.cfg
+              subPath: cowrie.cfg
+              readOnly: true
+            - name: honeypot-config
+              mountPath: /cowrie/cowrie-git/etc/userdb.txt
+              subPath: userdb.txt
+              readOnly: true
+            - name: honeypot-log
+              mountPath: /data
+        - name: files
+          image: registry.digitalocean.com/oechsler/files:latest
+          resources:
+            requests:
+              cpu: "32m"
+              memory: "32Mi"
+            limits:
+              cpu: "32m"
+              memory: "32Mi"
+          env:
+            - name: GROUP_ID
+              value: "1000"
+            - name: USER_ID
+              value: "1000"
+          volumeMounts:
+            - mountPath: /data/mounts/logs
+              name: honeypot-log
+          ports:
+            - name: sftp
+              containerPort: 22
