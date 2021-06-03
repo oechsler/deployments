@@ -5,11 +5,10 @@ metadata:
   name: eco-server
 
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
     - name: eco
       port: 3000
-      targetPort: 3000
       protocol: UDP
   selector:
     app: eco-server
@@ -42,4 +41,4 @@ spec:
       port: 22
       protocol: TCP
   selector:
-    app: eco-files
+    app: eco-server
