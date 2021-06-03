@@ -1,0 +1,92 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  namespace: minecraft
+  name: minecraft-server
+  labels:
+    app: minecraft-server
+
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minecraft-server
+  template:
+    metadata:
+      labels:
+        app: minecraft-server
+    spec:
+      volumes:
+        - name: server-data
+          persistentVolumeClaim:
+            claimName: server-data
+        - name: server-backup
+          persistentVolumeClaim:
+              claimName: server-backup
+      imagePullSecrets:
+        - name: oechsler
+      initContainers:
+        - name: server-data-perm
+          image: alpine:latest
+          command: ["/bin/chmod","-R","777", "/data"]
+          volumeMounts:
+          - name: server-data
+            mountPath: /data
+        - name: server-backup-perm
+          image: alpine:latest
+          command: ["/bin/chmod","-R","777", "/data"]
+          volumeMounts:
+          - name: server-backup
+            mountPath: /data
+      containers:
+        - name: files
+          image: registry.digitalocean.com/oechsler/files:latest
+          resources:
+            requests:
+              cpu: 32m
+              memory: 32Mi
+            limits:
+              cpu: 32m
+              memory: 32Mi
+          env:
+            - name: GROUP_ID
+              value: "1000"
+            - name: USER_ID
+              value: "1000"
+          volumeMounts:
+            - mountPath: "/data/mounts/data"
+              name: server-data
+            - mountPath: "/data/mounts/backups"
+              name: server-backup
+          ports:
+            - name: sftp
+              containerPort: 22
+        - name: server
+          image: itzg/minecraft-server:openj9
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 2Gi
+            limits:
+              cpu: 1200m
+              memory: 2.5Gi
+          env:
+            - name: TYPE
+              value: "SPIGOT"
+            - name: EULA
+              value: "TRUE"
+            - name: USE_AIKAR_FLAGS
+              value: "true"
+            - name: MEMORY
+              value: "2G"
+          volumeMounts:
+            - mountPath: "/data"
+              name: server-data
+            - mountPath: "/data/backups"
+              name: server-backup
+          ports:
+            - name: minecraft
+              containerPort: 25565
+              

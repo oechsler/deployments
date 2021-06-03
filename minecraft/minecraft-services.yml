@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: minecraft
+  name: minecraft-server
+
+spec:
+  type: NodePort
+  ports:
+    - name: minecraft
+      port: 25565
+      protocol: TCP
+  selector:
+    app: minecraft-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: minecraft
+  name: minecraft-files
+
+spec:
+  ports:
+    - name: sftp
+      port: 22
+      protocol: TCP
+  selector:
+    app: minecraft-server
